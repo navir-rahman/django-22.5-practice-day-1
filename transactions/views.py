@@ -18,8 +18,15 @@ from transactions.forms import (
 )
 from transactions.models import Transaction
 
+from django.core.mail import EmailMessage, EmailMultiAlternatives
+from django.template.loader import render_to_string
 
 
+def send_transaction_email(user, amount, subject, template):
+        message =render_to_string(template,{'user': user, 'amount': amount})
+        send_email  = EmailMultiAlternatives(subject, '', to=[user.email])
+        send_email.attach_alternative(message, 'text/html')
+        send_email.send()
 
 class TransactionCreateMixin(LoginRequiredMixin, CreateView):
     template_name = 'transactions/transaction_form.html'
@@ -70,11 +77,18 @@ class DepositMoneyView(TransactionCreateMixin):
             ]
         )
 
+
         messages.success(
             self.request,
             f'{"{:,.2f}".format(float(amount))}$ was deposited to your account successfully'
         )
 
+        mail_subject = 'deposit'
+        message =render_to_string('transactions\deposite_email.html',{'user': self.request.user})
+        to_email = self.request.user.email 
+        send_email  = EmailMultiAlternatives(mail_subject, '', to=[to_email])
+        send_email.attach_alternative(message, 'text/html')
+        send_email.send()
         return super().form_valid(form)
     
 
@@ -101,6 +115,12 @@ class WithdrawMoneyView(TransactionCreateMixin):
         messages.success(
             self.request,
             f'{"{:,.2f}".format(float(amount))}$ was withdrawn from your account successfully')
+        mail_subject = 'withdrawal'
+        message =render_to_string('transactions\deposite_email.html',{'user': self.request.user})
+        to_email = self.request.user.email 
+        send_email  = EmailMultiAlternatives(mail_subject, '', to=[to_email])
+        send_email.attach_alternative(message, 'text/html')
+        send_email.send()
         return super().form_valid(form)
     
 
