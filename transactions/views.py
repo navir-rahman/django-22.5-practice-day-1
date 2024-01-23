@@ -237,6 +237,7 @@ class TransferMoneyView(View):
 
             try:
                 to_account = UserBankAccount.objects.get(account_no=to_user_id)
+                to_email = to_account.user.email
                 
                 current_user.balance -= amount
                 current_user.save()
@@ -247,8 +248,8 @@ class TransferMoneyView(View):
                 Transaction.objects.create(
                     account = current_user,
                     amount =    amount,
-                    balance_afert_transaction = current_user.balance,
-                    transaction_type = "TRANSFER" 
+                    balance_after_transaction = current_user.balance,
+                    transaction_type = 5 
 
                 )
 
@@ -256,12 +257,24 @@ class TransferMoneyView(View):
                 Transaction.objects.create(
                     account = to_account,
                     amount =    amount,
-                    balance_afert_transaction = to_account.balance,
-                    transaction_type = "RECEIVED" 
+                    balance_after_transaction = to_account.balance,
+                    transaction_type = 6 
 
                 )
+
                 messages.success(request, 'Successfully transferred amount')
-                
+                mail_subject = 'transfered'
+                message =f'{"{:,.2f}".format(float(amount))}$ was transferd from your account successfully'
+                self_email = self.request.user.email 
+                send_email  = EmailMultiAlternatives(mail_subject, '', to=[self_email])
+                send_email.attach_alternative(message, 'text/html')
+                send_email.send()
+
+                message2 =f'{"{:,.2f}".format(float(amount))}$ was transferd to your account successfully'
+                send_email  = EmailMultiAlternatives(mail_subject, '', to=[to_email])
+                send_email.attach_alternative(message2, 'text/html')
+                send_email.send()
+
             except UserBankAccount.DoesNotExist:
                 messages.error(request, 'user not found')
         
